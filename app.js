@@ -7,7 +7,9 @@ const controlBox = document.querySelector('.control-box');
 
 const DEFAULT_SUB_TEXT = '마이크를 누르거나, <br>직접 입력해 주세요.';
 
+// ==========================================
 // [1] 음성 인식 기능
+// ==========================================
 const micBtn = document.getElementById('mic-btn');
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -50,7 +52,9 @@ if (SpeechRecognition) {
     micBtn.addEventListener('click', () => alert("음성 인식을 지원하지 않는 브라우저입니다."));
 }
 
-// [2] QR 스캔 (현위치 파악) 기능
+// ==========================================
+// [2] QR 스캔 (현위치 파악) 기능 [연신내역 광장 전용 저격 검증 적용]
+// ==========================================
 const cameraBtn = document.getElementById('camera-btn');
 
 cameraBtn.addEventListener('click', () => {
@@ -64,13 +68,29 @@ cameraBtn.addEventListener('click', () => {
         (decodedText) => {
             html5QrCode.stop().then(() => {
                 const parts = decodedText.split(',');
+                
+                // 1. 기본 형식 검사 (쉼표 여부 및 숫자 여부)
                 if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
                     alert("올바른 위치 QR이 아닙니다.");
-                    backgroundView.innerHTML = '<p class="placeholder-text">여기에 지도가 표시됩니다.</p>';
-                    statusText.innerText = "어디로 갈까요?";
-                    subText.innerHTML = DEFAULT_SUB_TEXT;
+                    resetToHome();
                     return;
                 }
+
+                // 2. 연신내역 광장 좌표 지정 검사
+                const targetLat = "37.6188881";
+                const targetLng = "126.920832";
+                
+                // 스캔한 좌표를 소수점 7자리 숫자로 안전하게 가공하여 대조
+                const scannedLat = parseFloat(parts[0]).toFixed(7);
+                const scannedLng = parseFloat(parts[1]).toFixed(7);
+
+                if (scannedLat !== targetLat || scannedLng !== targetLng) {
+                    alert("연신내역 광장 QR 코드가 아닙니다. 지정된 장소에서 다시 시도해 주세요.");
+                    resetToHome();
+                    return;
+                }
+
+                // 모든 보안 검사대를 통과한 경우에만 최종 위치 저장 및 안내 변경
                 currentLocation = decodedText;
                 statusText.innerText = "위치 확인 완료!";
                 subText.innerText = "이제 목적지를 말씀해 주세요.";
@@ -83,7 +103,9 @@ cameraBtn.addEventListener('click', () => {
     });
 });
 
+// ==========================================
 // [3] 카카오맵 띄우기 및 길 안내 기능
+// ==========================================
 const searchBtn = document.getElementById('search-btn');
 
 searchBtn.addEventListener('click', () => {
@@ -150,3 +172,12 @@ searchBtn.addEventListener('click', () => {
         }
     });
 });
+
+// ==========================================
+// [공통 유틸] 에러 및 제한 발생 시 초기 화면 리셋 함수
+// ==========================================
+function resetToHome() {
+    backgroundView.innerHTML = '<p class="placeholder-text">여기에 지도가 표시됩니다.</p>';
+    statusText.innerText = "어디로 갈까요?";
+    subText.innerHTML = DEFAULT_SUB_TEXT;
+}
