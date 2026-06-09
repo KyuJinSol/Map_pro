@@ -39,7 +39,7 @@ cd 저장소_폴더명
 │   ├── 📄 database.py    # SQL 데이터베이스(DB) 연결 설정 파일
 │   └── 📄 requirements.txt # 설치해야 하는 파이썬 패키지 목록 (FastAPI, SQL 연동 툴 등)
 │
-└── 📄 README.md          # 우리 팀의 가이드북
+└── 📄 README.md          # 우리 팀의 가이드북```
 
 ## 🤝 우리 팀의 개발 규칙 (Ground Rules)
 
