@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>간편한 길 안내 서비스</title>
+    <link rel="stylesheet" href="style.css">
+
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=cce14e5cfdca0c912864df9d0acbb8fc&libraries=services"></script>
+</head>
+<body>
+    <div id="background-view">
+        <p class="placeholder-text">여기에 지도가 표시됩니다.</p>
+    </div>
+
+    <div id="ui-layer">
+        <div class="info-box">
+            <h1 id="status-text">어디로 갈까요?</h1>
+            <p id="sub-text">마이크를 누르거나, <br>직접 입력해 주세요.</p>
+        </div>
+
+        <div class="control-box">
+            <div class="text-input-group">
+                <input type="text" id="destination-input" placeholder="목적지 입력">
+                <button id="search-btn">검색</button>
+            </div>
+            <button id="mic-btn" class="giant-btn">🎤</button>
+            <button id="camera-btn" class="sub-btn">📷 현재 위치 알아보기</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
