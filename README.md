@@ -45,8 +45,8 @@ cd 저장소_폴더명
 ## 🤝 우리 팀의 개발 규칙 (Ground Rules)
 
 ### 1. 개발 환경 및 툴
-- **Frontend: Vanilla HTML / CSS / JavaScript**
-- **Backend: Python (FastAPI)**
+- **Frontend:** Vanilla HTML / CSS / JavaScript
+- **Backend:** Python (FastAPI)
 - **Database:** SQL (예: MySQL)
 - **VCS / Tool:** GitHub, GitKraken, VS Code
 
