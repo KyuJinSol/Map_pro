@@ -1,0 +1,172 @@
+/* 기본 여백을 없애고 화면 전체를 사용하기 위한 초기화 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f4f9;
+}
+
+/* --- 배경 영역 --- */
+#background-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #e9ecef;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+
+.placeholder-text {
+    color: #adb5bd;
+    font-size: 1.5rem; /* 배경 안내 텍스트도 살짝 확대 */
+    transform: translateY(-70px);
+}
+
+/* --- UI 레이어 영역 (완벽한 중앙 정렬로 수정) --- */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* 상하 기준 중앙 정렬 */
+    align-items: center;     /* 좌우 기준 중앙 정렬 */
+    gap: 60px;               /* 글씨 박스와 마이크 버튼 사이의 넉넉한 간격 */
+    padding: 20px;
+    pointer-events: none;
+}
+
+/* --- 상단 안내 문구 박스 --- */
+.info-box {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 30px 20px;
+    border-radius: 20px;
+    text-align: center; /* 텍스트 중앙 정렬 */
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    pointer-events: auto;
+    width: 90%; /* 화면 너비에 맞춰 꽉 차게 보이도록 설정 */
+    max-width: 400px;
+}
+
+#status-text {
+    font-size: 3rem; /* 기존 2.2rem -> 3rem으로 대폭 확대 */
+    font-weight: 900; /* 글씨를 더 두껍게 */
+    color: #212529;
+    margin-bottom: 15px;
+    word-break: keep-all; 
+    line-height: 1.2; /* 줄간격 조정으로 안정감 부여 */
+}
+
+#sub-text {
+    font-size: 1.6rem; /* 기존 1.2rem -> 1.6rem으로 확대 */
+    color: #495057;
+    font-weight: 600;
+    word-break: keep-all;
+}
+
+/* --- 하단 컨트롤 영역 --- */
+.control-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px; /* 버튼 사이 간격 확보 */
+    pointer-events: auto;
+}
+
+/* 거대한 마이크 버튼 디자인 */
+.giant-btn {
+    width: 160px;  /* 140px -> 160px로 버튼 크기 확대 */
+    height: 160px; /* 140px -> 160px로 버튼 크기 확대 */
+    border-radius: 50%;
+    background-color: #059669;
+    color: white;
+    font-size: 5rem; /* 아이콘 크기 극대화 (4rem -> 5rem) */
+    border: none;
+    box-shadow: 0 10px 20px rgba(5, 150, 105, 0.4);
+    cursor: pointer;
+    transition: all 0.1s ease-in-out;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.giant-btn:active {
+    transform: scale(0.92);
+    background-color: #047857;
+}
+
+/* 보조 버튼 디자인 */
+.sub-btn {
+    padding: 16px 32px; /* 터치하기 쉽도록 여백 확대 */
+    border-radius: 40px;
+    background-color: white;
+    color: #333;
+    font-size: 1.3rem; /* 기존 1.1rem -> 1.3rem으로 확대 */
+    border: 2px solid #dee2e6;
+    font-weight: 700;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    cursor: pointer;
+}
+
+.sub-btn:active {
+    background-color: #f8f9fa;
+}
+/* --- 텍스트 입력 영역 디자인 --- */
+.text-input-group {
+    display: flex;
+    gap: 10px;
+    width: 90%;
+    max-width: 400px;
+    margin-bottom: 10px; /* 마이크 버튼과의 여백 */
+}
+
+/* 입력창 디자인 */
+#destination-input {
+    flex: 1; /* 남은 공간을 꽉 채우도록 설정 */
+    padding: 18px 20px;
+    font-size: 1.3rem; /* 큰 글씨 */
+    border-radius: 30px;
+    border: 2px solid #dee2e6;
+    outline: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    font-weight: 600;
+}
+
+/* 입력창을 터치(포커스)했을 때 테두리 색상 변경 */
+#destination-input:focus {
+    border-color: #059669; /* 포인트 색상인 초록색으로 통일 */
+}
+
+/* 검색 버튼 디자인 */
+#search-btn {
+    padding: 0 25px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background-color: #212529; /* 눈에 띄는 어두운 회색 */
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: all 0.1s ease-in-out;
+}
+
+/* 검색 버튼을 눌렀을 때 살짝 들어가는 효과 */
+#search-btn:active {
+    transform: scale(0.95);
+    background-color: #343a40;
+}
