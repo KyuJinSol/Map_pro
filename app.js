@@ -8,6 +8,8 @@ kakao.maps.load(function() {
     const map = new kakao.maps.Map(container, options);
     const ps = new kakao.maps.services.Places();
 
+    const DEFAULT_SUB_TEXT = "<span>원하시는 목적지를 검색창에 입력하거나 마이크 버튼을 눌러 말씀해 주세요.</span>";
+
     let currentPathLine = null;
     let startMarker = null;
     let endMarker = null;
@@ -83,8 +85,80 @@ kakao.maps.load(function() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
+        recognition.maxAlternatives = 3;
         recognition.interimResults = false;
         recognition.lang = 'ko-KR';
+
+        const KNOWN_DESTINATIONS = [
+            "연서시장", "연신내역 3번출구", "불광천", "북한산둘레길"
+            // 실제 주변 장소로 채워주세요
+        ];
+
+        function similarity(a, b) {
+            const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+            for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+            for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+            for (let i = 1; i <= a.length; i++) {
+                for (let j = 1; j <= b.length; j++) {
+                    dp[i][j] = a[i - 1] === b[j - 1]
+                        ? dp[i - 1][j - 1]
+                        : Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]) + 1;
+                }
+            }
+            const dist = dp[a.length][b.length];
+            return 1 - dist / Math.max(a.length, b.length, 1);
+        }
+
+        function findKnownMatch(candidates, threshold = 0.6) {
+            let best = null, bestScore = 0;
+            candidates.forEach(text => {
+                KNOWN_DESTINATIONS.forEach(name => {
+                    const score = similarity(text, name);
+                    if (score > bestScore) { bestScore = score; best = name; }
+                });
+            });
+            return bestScore >= threshold ? best : null;
+        }
+
+        function searchKakaoCandidates(keyword, callback) {
+            const ps = new kakao.maps.services.Places();
+            const options = {};
+            
+            let centerLatLng = new kakao.maps.LatLng(37.6150000, 126.9200000); 
+            
+            options.location = centerLatLng
+            options.radius = 2000;
+            options.sort = kakao.maps.services.SortBy.DISTANCE;
+            
+            ps.keywordSearch(keyword, (data, status) => {
+                callback(status === kakao.maps.services.Status.OK ? data.slice(0, 3) : []);
+            }, options);
+        }
+
+        function showCandidates(candidates) {
+            if (candidates.length === 0) {
+                statusText.innerText = "목적지를 찾지 못했습니다.";
+                subText.innerHTML = DEFAULT_SUB_TEXT;
+                return;
+            }
+            statusText.innerText = "이 곳으로 안내할까요?";
+            subText.innerHTML = candidates
+                .map((c, i) => `<button class="candidate-btn" data-idx="${i}">📍 ${c.place_name}</button>`)
+                .join('') + `<button id="retry-btn">🔄 다시 말할게요</button>`;
+
+            document.querySelectorAll('.candidate-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    destinationInput.value = candidates[btn.dataset.idx].place_name;
+                    subText.innerHTML = DEFAULT_SUB_TEXT;
+                    document.getElementById('search-btn').click();
+                });
+            });
+            document.getElementById('retry-btn').addEventListener('click', () => {
+                subText.innerHTML = DEFAULT_SUB_TEXT;
+                statusText.innerText = "듣고 있습니다...";
+                recognition.start();
+            });
+        }
 
         micBtn.addEventListener('click', function() {
             recognition.start();
@@ -92,10 +166,57 @@ kakao.maps.load(function() {
             subText.innerText = "목적지를 말씀해 주세요.";
         });
 
-        recognition.onresult = function(event) {
-            const speechToText = event.results[0][0].transcript;
-            destinationInput.value = speechToText.replace(/\./g, '').trim();
-            document.getElementById('search-btn').click(); 
+        recognition.onresult = (event) => {
+            const alternatives = [];
+            for (let i = 0; i < event.results[0].length; i++) {
+                alternatives.push(event.results[0][i].transcript);
+            }
+
+            const originalText = alternatives[0];
+            const corrected = findKnownMatch(alternatives);
+            if (corrected) {
+                if (originalText === corrected) {
+                    destinationInput.value = corrected;
+                    statusText.innerText = `"${corrected}"(으)로 안내할까요?`;
+                    subText.innerHTML = `<button id="confirm-btn">✅ 맞아요</button><button id="retry-btn">🔄 다시 말할게요</button>`;
+                    
+                    document.getElementById('confirm-btn').addEventListener('click', () => {
+                        subText.innerHTML = DEFAULT_SUB_TEXT;
+                        document.getElementById('search-btn').click();
+                    });
+                    document.getElementById('retry-btn').addEventListener('click', () => {
+                        subText.innerHTML = DEFAULT_SUB_TEXT;
+                        destinationInput.value = '';
+                        statusText.innerText = "듣고 있습니다...";
+                        recognition.start();
+                    });
+
+                } else {
+                    statusText.innerText = "어느 곳을 찾으시나요?";
+                    subText.innerHTML = `
+                        <button class="choice-btn" data-name="${corrected}">📍 자주 가는 곳: ${corrected}</button>
+                        <button class="choice-btn" data-name="${originalText}">📍 방금 말한 곳: ${originalText}</button>
+                        <button id="retry-btn">🔄 다시 말할게요</button>
+                    `;
+
+                    document.querySelectorAll('.choice-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            destinationInput.value = btn.dataset.name;
+                            subText.innerHTML = DEFAULT_SUB_TEXT;
+                            document.getElementById('search-btn').click();
+                        });
+                    });
+
+                    document.getElementById('retry-btn').addEventListener('click', () => {
+                        subText.innerHTML = DEFAULT_SUB_TEXT;
+                        statusText.innerText = "듣고 있습니다...";
+                        recognition.start();
+                    });
+                }
+            } else {
+                statusText.innerText = "검색 중...";
+                searchKakaoCandidates(alternatives[0], showCandidates);
+            }
         };
     }
 
