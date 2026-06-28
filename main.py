@@ -37,9 +37,14 @@ app.add_middleware(
 
 TMAP_API_KEY = "xtombuydrL8RE8Fs2iavf4VjHKfDJPYn4sludT1E"
 
+import os
+
 def get_db_connection():
+    # 💡 팀원 컴퓨터 환경변수에 'DB_PASSWORD'가 등록되어 있으면 그걸 쓰고, 없으면 내 기본 비밀번호 사용!
+    db_password = os.getenv("DB_PASSWORD", "chan030531^^") 
+    
     return pymysql.connect(
-        host='localhost', user='root', password='chan030531^^',  
+        host='localhost', user='root', password=db_password,  
         database='map_db', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor  
     )
 
