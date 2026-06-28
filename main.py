@@ -1,26 +1,6 @@
-import sys
-import subprocess
-
-# 💡 [코드 내 자동화] 서버가 실행될 때 핵심 라이브러리를 무조건 최신 버전으로 업데이트합니다.
-def init_and_update_environment():
-    # 우리 내비게이션 시스템에 필요한 알맹이 라이브러리 목록
-    essential_packages = ["pymysql", "requests", "fastapi", "uvicorn", "pydantic"]
-    
-    print("\n[⚙️ 시스템] 파이썬 최신 환경 검사 및 라이브러리 자동 업데이트 시작...")
-    for package in essential_packages:
-        try:
-            # 컴퓨터 내부의 pip를 끄집어내어 백그라운드에서 최신 버전(--upgrade)으로 설치를 때립니다.
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", package])
-        except Exception as e:
-            print(f"⚠️ {package} 자동 설치 중 오류 발생: {str(e)}")
-    print("[⚙️ 시스템] 모든 필수 라이브러리가 파이썬 최신 버전 환경에 맞춰 세팅되었습니다.\n")
-
-# 🚀 다른 코드(import)가 실행되기 전에 최우선으로 환경을 강제 동기화합니다.
-init_and_update_environment()
-
-# --- 여기서부터 기존 import 및 코드가 이어집니다 ---
 import pymysql
 import requests
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -36,8 +16,6 @@ app.add_middleware(
 )
 
 TMAP_API_KEY = "xtombuydrL8RE8Fs2iavf4VjHKfDJPYn4sludT1E"
-
-import os
 
 def get_db_connection():
     # 💡 팀원 컴퓨터 환경변수에 'DB_PASSWORD'가 등록되어 있으면 그걸 쓰고, 없으면 내 기본 비밀번호 사용!
