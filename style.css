@@ -157,3 +157,52 @@ body, html {
 .hidden-map {
     display: none !important;
 }
+
+/* ==========================================================================
+   💡 음성 인식 동적 생성 버튼 전용 UI 데코레이션 (추가 파트)
+   ========================================================================== */
+.dynamic-btn-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 320px;
+    gap: 12px;
+    margin: 20px auto 0 auto;
+}
+
+.candidate-btn, .choice-btn, #confirm-btn, #retry-btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 15px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+    transition: all 0.15s ease;
+    word-break: keep-all;
+}
+
+/* 추천 장소 및 맞아요 확인 버튼 (매력적인 녹색) */
+.candidate-btn, #confirm-btn {
+    background-color: #059669;
+    color: white;
+}
+
+/* 단순 말한 장소 분기 버튼 (세련된 차콜색) */
+.choice-btn {
+    background-color: #495057;
+    color: white;
+}
+
+/* 다시 말하기 취소 버튼 (연한 회색 바탕에 붉은 글씨) */
+#retry-btn {
+    background-color: #e9ecef;
+    color: #dc3545;
+}
+
+/* 버튼 클릭 시 눌리는 쫀득한 모션 추가 */
+.candidate-btn:active, .choice-btn:active, #confirm-btn:active, #retry-btn:active {
+    transform: scale(0.96);
+    opacity: 0.9;
+}
