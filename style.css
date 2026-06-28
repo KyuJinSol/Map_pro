@@ -1,159 +1,48 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body, html {
-    width: 100%;
-    height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: #f4f4f9;
-    overflow-y: auto; /* 지도가 뜨면 스크롤이 가능하도록 설정 */
-}
-
-/* --- 상단 UI 컨테이너 (정중앙 정렬) --- */
-#ui-container {
-    width: 100%;
-    min-height: 100vh; /* 검색 전에는 화면 전체 차지 */
+/* ==========================================================================
+   💡 음성 인식 동적 생성 버튼 전용 UI 데코레이션 (추가 파트)
+   ========================================================================== */
+.dynamic-btn-group {
     display: flex;
     flex-direction: column;
-    justify-content: center; 
-    align-items: center;     
-    gap: 40px;               
-    padding: 40px 20px;
-    transition: min-height 0.3s ease; /* 부드러운 화면 축소 연출 */
-}
-
-/* 💡 검색 성공 시 상단 UI 영역이 위쪽 절반(50vh)으로 슥 줄어듭니다 */
-#ui-container.searched {
-    min-height: 50vh;
-    gap: 20px;
-    padding: 20px;
-}
-
-/* --- 상단 안내 문구 박스 --- */
-.info-box {
-    background-color: white;
-    padding: 30px 20px;
-    border-radius: 20px;
-    text-align: center; 
-    box-shadow: 0 8px 16px rgba(0,0,0,0.05);
-    width: 90%; 
-    max-width: 400px;
-}
-
-#status-text {
-    font-size: 2.5rem; 
-    font-weight: 900; 
-    color: #212529;
-    margin-bottom: 15px;
-    line-height: 1.2; 
-    word-break: keep-all;
-}
-
-#sub-text {
-    font-size: 1.3rem; 
-    color: #495057;
-    font-weight: 600;
-    word-break: keep-all;
-}
-
-/* --- 하단 컨트롤 영역 --- */
-.control-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 25px; 
     width: 100%;
+    max-width: 320px;
+    gap: 12px;
+    margin: 20px auto 0 auto;
 }
 
-.giant-btn {
-    width: 140px;  
-    height: 140px; 
-    border-radius: 50%;
-    background-color: #059669;
-    color: white;
-    font-size: 4.5rem; 
-    border: none;
-    box-shadow: 0 10px 20px rgba(5, 150, 105, 0.3);
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: transform 0.1s;
-}
-
-.giant-btn:active {
-    transform: scale(0.92);
-}
-
-.text-input-group {
-    display: flex;
-    gap: 10px;
-    width: 90%;
-    max-width: 400px;
-}
-
-#destination-input {
-    flex: 1; 
-    padding: 15px 20px;
-    font-size: 1.2rem; 
-    border-radius: 30px;
-    border: 2px solid #dee2e6;
-    outline: none;
-    font-weight: 600;
-}
-
-#destination-input:focus {
-    border-color: #059669; 
-}
-
-#search-btn {
-    padding: 0 25px;
+.candidate-btn, .choice-btn, #confirm-btn, #retry-btn {
+    width: 100%;
+    padding: 14px 20px;
     font-size: 1.1rem;
     font-weight: 700;
-    background-color: #212529; 
-    color: white;
+    border-radius: 15px;
     border: none;
-    border-radius: 30px;
     cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+    transition: all 0.15s ease;
+    word-break: keep-all;
 }
 
-#search-btn:active {
-    transform: scale(0.95);
-}
-
-/* --- 실시간 위치 조작 버튼 --- */
-.sub-control-btn {
-    padding: 10px 20px;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #059669; 
-    background-color: white;
-    border: 2px solid #059669;
-    border-radius: 20px;
-    cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    transition: all 0.2s ease;
-}
-
-.sub-control-btn.active {
+/* 추천 장소 및 맞아요 확인 버튼 (매력적인 녹색) */
+.candidate-btn, #confirm-btn {
+    background-color: #059669;
     color: white;
-    background-color: #059669; 
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* --- 🗺️ 하단 지도 레이아웃 --- */
-#map {
-    width: 100%;
-    height: 50vh; /* 화면 하단 절반을 차지 */
+/* 단순 말한 장소 분기 버튼 (세련된 차콜색) */
+.choice-btn {
+    background-color: #495057;
+    color: white;
+}
+
+/* 다시 말하기 취소 버튼 (연한 회색 바탕에 붉은 글씨) */
+#retry-btn {
     background-color: #e9ecef;
-    border-top: 2px solid #dee2e6;
-    transition: all 0.3s ease;
+    color: #dc3545;
 }
 
-/* 💡 [필수 추가] 처음에는 지도를 화면에서 완전히 보이지 않게 숨김 */
-.hidden-map {
-    display: none !important;
+/* 버튼 클릭 시 눌리는 쫀득한 모션 추가 */
+.candidate-btn:active, .choice-btn:active, #confirm-btn:active, #retry-btn:active {
+    transform: scale(0.96);
+    opacity: 0.9;
 }

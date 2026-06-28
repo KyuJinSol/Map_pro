@@ -89,7 +89,6 @@ kakao.maps.load(function() {
 
         const KNOWN_DESTINATIONS = [
             "연서시장", "연신내역 3번출구", "불광천", "북한산둘레길"
-            // 실제 주변 장소로 채워주세요
         ];
 
         function similarity(a, b) {
@@ -118,19 +117,47 @@ kakao.maps.load(function() {
             return bestScore >= threshold ? best : null;
         }
 
+        // 💡 [버그 수정] 음성 인식 후보 검색 함수에도 최근접 중심점 연동, 500m~7.5km 점진적 확대, 피타고라스 정렬을 완벽하게 이식했습니다!
         function searchKakaoCandidates(keyword, callback) {
-            const ps = new kakao.maps.services.Places();
-            const options = {};
+            const radiusList = [500, 2000, 3500, 5000, 7500];
+            let radiusIndex = 0;
             
-            let centerLatLng = new kakao.maps.LatLng(37.6150000, 126.9200000); 
-            
-            options.location = centerLatLng
-            options.radius = 2000;
-            options.sort = kakao.maps.services.SortBy.DISTANCE;
-            
-            ps.keywordSearch(keyword, (data, status) => {
-                callback(status === kakao.maps.services.Status.OK ? data.slice(0, 3) : []);
-            }, options);
+            let centerLatLng = (useRealtimeGPS && gpsCoords)
+                ? new kakao.maps.LatLng(gpsCoords.lat, gpsCoords.lng)
+                : new kakao.maps.LatLng(37.6188881, 126.920832);
+
+            function doCandidateSearch() {
+                const currentRadius = radiusList[radiusIndex];
+                const options = {
+                    location: centerLatLng,
+                    radius: currentRadius,
+                    sort: kakao.maps.services.SortBy.DISTANCE
+                };
+
+                ps.keywordSearch(keyword, (data, status) => {
+                    if (status === kakao.maps.services.Status.OK) {
+                        // 피타고라스 직선거리 수학 정렬 보정
+                        data.sort(function(a, b) {
+                            const latC = centerLatLng.getLat();
+                            const lngC = centerLatLng.getLng();
+                            const distA = Math.pow(parseFloat(a.y) - latC, 2) + Math.pow(parseFloat(a.x) - lngC, 2);
+                            const distB = Math.pow(parseFloat(b.y) - latC, 2) + Math.pow(parseFloat(b.x) - lngC, 2);
+                            return distA - distB;
+                        });
+                        callback(data.slice(0, 3)); 
+                    } else {
+                        radiusIndex++;
+                        if (radiusIndex < radiusList.length) {
+                            console.log(`🎙️ [음성 검색 후보] 반경 확대 스캔: ${radiusList[radiusIndex]}m`);
+                            doCandidateSearch(); 
+                        } else {
+                            callback([]); 
+                        }
+                    }
+                }, options);
+            }
+
+            doCandidateSearch();
         }
 
         function showCandidates(candidates) {
@@ -140,15 +167,16 @@ kakao.maps.load(function() {
                 return;
             }
             statusText.innerText = "이 곳으로 안내할까요?";
-            subText.innerHTML = candidates
-                .map((c, i) => `<button class="candidate-btn" data-idx="${i}">📍 ${c.place_name}</button>`)
-                .join('') + `<button id="retry-btn">🔄 다시 말할게요</button>`;
+            // 💡 세련된 UI 스타일이 먹히도록 버튼 레이아웃 구조 정렬
+            subText.innerHTML = `<div class="dynamic-btn-group">` + 
+                candidates.map((c, i) => `<button class="candidate-btn" data-idx="${i}">📍 ${c.place_name}</button>`).join('') + 
+                `<button id="retry-btn">🔄 다시 말할게요</button></div>`;
 
             document.querySelectorAll('.candidate-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     destinationInput.value = candidates[btn.dataset.idx].place_name;
                     subText.innerHTML = DEFAULT_SUB_TEXT;
-                    document.getElementById('search-btn').click();
+                    searchRoute();
                 });
             });
             document.getElementById('retry-btn').addEventListener('click', () => {
@@ -176,11 +204,11 @@ kakao.maps.load(function() {
                 if (originalText === corrected) {
                     destinationInput.value = corrected;
                     statusText.innerText = `"${corrected}"(으)로 안내할까요?`;
-                    subText.innerHTML = `<button id="confirm-btn">✅ 맞아요</button><button id="retry-btn">🔄 다시 말할게요</button>`;
+                    subText.innerHTML = `<div class="dynamic-btn-group"><button id="confirm-btn">✅ 맞아요</button><button id="retry-btn">🔄 다시 말할게요</button></div>`;
                     
                     document.getElementById('confirm-btn').addEventListener('click', () => {
                         subText.innerHTML = DEFAULT_SUB_TEXT;
-                        document.getElementById('search-btn').click();
+                        searchRoute();
                     });
                     document.getElementById('retry-btn').addEventListener('click', () => {
                         subText.innerHTML = DEFAULT_SUB_TEXT;
@@ -191,17 +219,17 @@ kakao.maps.load(function() {
 
                 } else {
                     statusText.innerText = "어느 곳을 찾으시나요?";
-                    subText.innerHTML = `
+                    subText.innerHTML = `<div class="dynamic-btn-group">
                         <button class="choice-btn" data-name="${corrected}">📍 자주 가는 곳: ${corrected}</button>
                         <button class="choice-btn" data-name="${originalText}">📍 방금 말한 곳: ${originalText}</button>
                         <button id="retry-btn">🔄 다시 말할게요</button>
-                    `;
+                    </div>`;
 
                     document.querySelectorAll('.choice-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             destinationInput.value = btn.dataset.name;
                             subText.innerHTML = DEFAULT_SUB_TEXT;
-                            document.getElementById('search-btn').click();
+                            searchRoute();
                         });
                     });
 
@@ -220,6 +248,12 @@ kakao.maps.load(function() {
 
     // 🛣️ 최근접 동적 검색 및 Tmap 통신 함수
     function searchRoute() {
+        // 경로 재검색 시 기존 타이머 안전하게 초기화
+        if (locationTimer) {
+            clearInterval(locationTimer);
+            locationTimer = null;
+        }
+
         const destination = destinationInput.value;
 
         if (!destination) {
@@ -229,16 +263,13 @@ kakao.maps.load(function() {
 
         statusText.innerText = "목적지 탐색 중...";
 
-        // 기본 광장 기준 좌표를 지도 중심과 완벽히 일치 (37.6188881, 126.920832)
         let centerLatLng = (useRealtimeGPS && gpsCoords)
             ? new kakao.maps.LatLng(gpsCoords.lat, gpsCoords.lng)
             : new kakao.maps.LatLng(37.6188881, 126.920832);
 
-        // 점진적 확대 스케일 정의
         const radiusList = [500, 2000, 3500, 5000, 7500];
         let radiusIndex = 0;
 
-        // 점진적 반복 검색용 내부 함수 정의
         function doSearchLoop() {
             const currentRadius = radiusList[radiusIndex];
             console.log(`🔍 [경로 탐색] 반경 ${currentRadius}m 내 검색 시도 중...`);
@@ -251,14 +282,11 @@ kakao.maps.load(function() {
             ps.keywordSearch(destination, function(data, status) {
                 if (status === kakao.maps.services.Status.OK) {
                     
-                    // 💡 카카오가 준 결과를 피타고라스 거리 공식으로 재정렬하여 진짜 최근접 매장 선출
                     data.sort(function(a, b) {
                         const latC = centerLatLng.getLat();
                         const lngC = centerLatLng.getLng();
-                        
                         const distA = Math.pow(parseFloat(a.y) - latC, 2) + Math.pow(parseFloat(a.x) - lngC, 2);
                         const distB = Math.pow(parseFloat(b.y) - latC, 2) + Math.pow(parseFloat(b.x) - lngC, 2);
-                        
                         return distA - distB; 
                     });
 
@@ -375,12 +403,13 @@ kakao.maps.load(function() {
     }
 
     // 검색 버튼 클릭 이벤트
-    document.getElementById('search-btn').addEventListener('click', function() {
-        if (locationTimer) {
-            clearInterval(locationTimer);
-            locationTimer = null;
+    document.getElementById('search-btn').addEventListener('click', searchRoute);
+
+    // 💡 [UX 개선] 입력창에서 엔터키(Enter)를 눌러도 자동 검색이 가동되도록 리너 추가
+    destinationInput.addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            searchRoute();
         }
-        searchRoute();
     });
 
 });
