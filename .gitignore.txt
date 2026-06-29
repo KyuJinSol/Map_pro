@@ -1,0 +1,9 @@
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
