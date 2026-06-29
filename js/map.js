@@ -2,12 +2,15 @@ import { state } from './state.js';
 
 export function initMap(container) {
     const options = {
-        center: new kakao.maps.LatLng(37.6188881, 126.920832), 
+        // 💡 [수정] state 변수를 불러와서 중심 좌표로 설정
+        center: new kakao.maps.LatLng(state.defaultCenter.lat, state.defaultCenter.lng), 
         level: 3 
     };
     state.map = new kakao.maps.Map(container, options);
     state.ps = new kakao.maps.services.Places();
 }
+
+// ... 아래 clearMapOverlays, drawRoute 함수는 기존과 동일 ...
 
 export function clearMapOverlays() {
     if (state.currentPathLine) state.currentPathLine.setMap(null);

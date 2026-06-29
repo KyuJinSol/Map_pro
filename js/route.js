@@ -18,9 +18,10 @@ export function searchRoute() {
 
     updateStatus("목적지 탐색 중...");
 
+    // 💡 [수정] 하드코딩된 좌표(37.618... 등)를 state.defaultCenter로 교체
     let centerLatLng = (state.useRealtimeGPS && state.gpsCoords)
         ? new kakao.maps.LatLng(state.gpsCoords.lat, state.gpsCoords.lng)
-        : new kakao.maps.LatLng(37.6188881, 126.920832);
+        : new kakao.maps.LatLng(state.defaultCenter.lat, state.defaultCenter.lng);
 
     const radiusList = [500, 2000, 3500, 5000, 7500];
     let radiusIndex = 0;
