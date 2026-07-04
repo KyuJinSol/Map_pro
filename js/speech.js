@@ -2,7 +2,9 @@ import { state } from './state.js';
 import { elements, updateStatus, DEFAULT_SUB_TEXT, changeDefaultSubText } from './ui.js';
 import { searchRoute } from './route.js';
 
-const KNOWN_DESTINATIONS = ["연서시장", "연신내역 3번출구", "불광천", "북한산둘레길"];
+const response = await fetch('http://localhost:8000/api/destinations');
+const result = await response.json();
+let KNOWN_DESTINATIONS = result.status === "success" ? result.data : [];
 
 // 1. 레벤슈타인 거리 기반 유사도 측정 알고리즘
 function similarity(a, b) {
