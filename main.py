@@ -32,6 +32,26 @@ class RouteRequest(BaseModel):
     end_lng: float        
     destination_name: str 
 
+@app.get("/api/destinations")
+def get_destinations():
+    try:
+        connection = get_db_connection()
+        with connection.cursor() as cursor:
+            sql = "SELECT name_ko FROM destinations"
+            cursor.execute(sql)
+            db_results = cursor.fetchall()
+        connection.close()
+
+        destination_list = [row['name_ko'] for row in db_results]
+        
+        return {
+            "status": "success",
+            "data": destination_list
+        }
+
+    except Exception as e:
+        return {"status": "error", "message": str(e), "data": []}
+
 @app.post("/api/routes")
 def get_route(request: RouteRequest):
     print(f"\n[서버 수신] 🛫출발 모드 데이터: {request.start_name} -> 🏁목적지: {request.destination_name}")
