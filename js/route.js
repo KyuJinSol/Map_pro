@@ -18,7 +18,6 @@ export function searchRoute() {
 
     updateStatus("목적지 탐색 중...");
 
-    // 💡 [수정] 하드코딩된 좌표(37.618... 등)를 state.defaultCenter로 교체
     let centerLatLng = (state.useRealtimeGPS && state.gpsCoords)
         ? new kakao.maps.LatLng(state.gpsCoords.lat, state.gpsCoords.lng)
         : new kakao.maps.LatLng(state.defaultCenter.lat, state.defaultCenter.lng);
@@ -35,10 +34,59 @@ export function searchRoute() {
             updateStatus("목적지 탐색 중...", `코앞에 목적지가 없어 검색 범위를 ${distanceText}로 확대합니다.`);
         }
 
+        // 💡 [최종 돌파구] 거리순 탐색 기반에, 검색어가 '역'이면 지하철역만 불러오게 강제 명령
+        const searchOptions = {
+            location: centerLatLng,
+            sort: kakao.maps.services.SortBy.DISTANCE,
+            radius: currentRadius,
+            useMapBounds: false
+        };
+
+        if (destination.endsWith('역')) {
+            searchOptions.category_group_code = 'SW8';
+        }
+
         state.ps.keywordSearch(destination, function(data, status) {
             if (status === kakao.maps.services.Status.OK) {
                 
-                data.sort(function(a, b) {
+                let validData = data;
+                
+                // 지하철역만 가져왔더라도, 정확히 그 이름이 들어있는지 한 번 더 깐깐하게 방어
+                if (destination.endsWith('역')) {
+                    const keywordTrim = destination.replace(/\s+/g, '');
+                    validData = data.filter(p => p.place_name.replace(/\s+/g, '').includes(keywordTrim));
+                }
+
+                // 헛다리 짚었으면 가차 없이 반경 확대 루프로 넘김
+                if (validData.length === 0) {
+                    radiusIndex++;
+                    if (radiusIndex < radiusList.length) {
+                        doSearchLoop();
+                    } else {
+                        alert("반경 7.5km 이내에서 해당 장소를 찾을 수 없습니다.");
+                        updateStatus("어디로 갈까요?", "목적지를 다시 입력해 주세요.");
+                    }
+                    return;
+                }
+
+                // 💡 [스마트 정렬] 정확도 -> 랜드마크 -> 지점 배제 -> 피타고라스 실거리
+                validData.sort(function(a, b) {
+                    const aExact = a.place_name === destination || a.place_name.startsWith(destination + ' ');
+                    const bExact = b.place_name === destination || b.place_name.startsWith(destination + ' ');
+                    if (aExact && !bExact) return -1;
+                    if (!aExact && bExact) return 1;
+
+                    const landmarkCodes = ['SW8', 'SC4', 'PO3'];
+                    const aIsLandmark = landmarkCodes.includes(a.category_group_code);
+                    const bIsLandmark = landmarkCodes.includes(b.category_group_code);
+                    if (aIsLandmark && !bIsLandmark) return -1;
+                    if (!aIsLandmark && bIsLandmark) return 1;
+
+                    const aIsBranch = a.place_name.endsWith('점');
+                    const bIsBranch = b.place_name.endsWith('점');
+                    if (!aIsBranch && bIsBranch) return -1;
+                    if (aIsBranch && !bIsBranch) return 1;
+
                     const latC = centerLatLng.getLat();
                     const lngC = centerLatLng.getLng();
                     const distA = Math.pow(parseFloat(a.y) - latC, 2) + Math.pow(parseFloat(a.x) - lngC, 2);
@@ -46,7 +94,7 @@ export function searchRoute() {
                     return distA - distB; 
                 });
 
-                const targetPlace = data[0]; 
+                const targetPlace = validData[0]; 
                 const end_lat = parseFloat(targetPlace.y); 
                 const end_lng = parseFloat(targetPlace.x); 
                 const real_destination_name = targetPlace.place_name;
@@ -65,7 +113,6 @@ export function searchRoute() {
 
                 updateStatus("경로 계산 중...");
 
-                // 💡 [수정됨] 127.0.0.1 하드코딩 제거 및 동적 호스트명 적용
                 const serverUrl = `http://${window.location.hostname}:8000/api/routes`;
 
                 fetch(serverUrl, {
@@ -138,12 +185,7 @@ export function searchRoute() {
                     updateStatus("어디로 갈까요?", "목적지를 다시 입력해 주세요.");
                 }
             }
-        }, {
-            location: centerLatLng,                  
-            sort: kakao.maps.services.SortBy.DISTANCE,
-            radius: currentRadius, 
-            useMapBounds: false                        
-        });
+        }, searchOptions);
     }
 
     doSearchLoop();

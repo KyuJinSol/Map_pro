@@ -6,7 +6,7 @@ const response = await fetch('http://localhost:8000/api/destinations');
 const result = await response.json();
 let KNOWN_DESTINATIONS = result.status === "success" ? result.data : [];
 
-// 1. 레벤슈타인 거리 기반 유사도 측정 알고리즘
+// 레벤슈타인 거리 기반 유사도 측정 알고리즘
 function similarity(a, b) {
     const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
     for (let i = 0; i <= a.length; i++) dp[i][0] = i;
@@ -22,7 +22,6 @@ function similarity(a, b) {
     return 1 - dist / Math.max(a.length, b.length, 1);
 }
 
-// 2. 알려진 목적지 중에서 가장 유사한 것 찾기
 function findKnownMatch(candidates, threshold = 0.6) {
     let best = null, bestScore = 0;
     candidates.forEach(text => {
@@ -34,34 +33,74 @@ function findKnownMatch(candidates, threshold = 0.6) {
     return bestScore >= threshold ? best : null;
 }
 
-// 3. 카카오맵 API를 이용한 반경 확대 후보군 검색
+// 💡 카카오맵 API를 이용한 음성 후보군 똑똑하게 검색
 function searchKakaoCandidates(keyword, callback) {
     const radiusList = [500, 2000, 3500, 5000, 7500];
     let radiusIndex = 0;
     
-    // 💡 [수정] 하드코딩된 좌표를 state.defaultCenter로 교체
     let centerLatLng = (state.useRealtimeGPS && state.gpsCoords)
         ? new kakao.maps.LatLng(state.gpsCoords.lat, state.gpsCoords.lng)
         : new kakao.maps.LatLng(state.defaultCenter.lat, state.defaultCenter.lng);
 
     function doCandidateSearch() {
         const currentRadius = radiusList[radiusIndex];
+        
         const options = {
             location: centerLatLng,
             radius: currentRadius,
             sort: kakao.maps.services.SortBy.DISTANCE
         };
 
+        if (keyword.endsWith('역')) {
+            options.category_group_code = 'SW8';
+        }
+
         state.ps.keywordSearch(keyword, (data, status) => {
             if (status === kakao.maps.services.Status.OK) {
-                data.sort(function(a, b) {
+                
+                let validData = data;
+                
+                if (keyword.endsWith('역')) {
+                    const keywordTrim = keyword.replace(/\s+/g, '');
+                    validData = data.filter(p => p.place_name.replace(/\s+/g, '').includes(keywordTrim));
+                }
+
+                if (validData.length === 0) {
+                    radiusIndex++;
+                    if (radiusIndex < radiusList.length) {
+                        console.log(`🎙️ [음성 검색 후보] 엉뚱한 결과 배제. 반경 확대 스캔: ${radiusList[radiusIndex]}m`);
+                        doCandidateSearch(); 
+                    } else {
+                        callback([]); 
+                    }
+                    return;
+                }
+
+                validData.sort(function(a, b) {
+                    const aExact = a.place_name === keyword || a.place_name.startsWith(keyword + ' ');
+                    const bExact = b.place_name === keyword || b.place_name.startsWith(keyword + ' ');
+                    if (aExact && !bExact) return -1;
+                    if (!aExact && bExact) return 1;
+
+                    const landmarkCodes = ['SW8', 'SC4', 'PO3'];
+                    const aIsLandmark = landmarkCodes.includes(a.category_group_code);
+                    const bIsLandmark = landmarkCodes.includes(b.category_group_code);
+                    if (aIsLandmark && !bIsLandmark) return -1;
+                    if (!aIsLandmark && bIsLandmark) return 1;
+
+                    const aIsBranch = a.place_name.endsWith('점');
+                    const bIsBranch = b.place_name.endsWith('점');
+                    if (!aIsBranch && bIsBranch) return -1;
+                    if (aIsBranch && !bIsBranch) return 1;
+
                     const latC = centerLatLng.getLat();
                     const lngC = centerLatLng.getLng();
                     const distA = Math.pow(parseFloat(a.y) - latC, 2) + Math.pow(parseFloat(a.x) - lngC, 2);
                     const distB = Math.pow(parseFloat(b.y) - latC, 2) + Math.pow(parseFloat(b.x) - lngC, 2);
                     return distA - distB;
                 });
-                callback(data.slice(0, 3)); // 상위 3개만 반환
+                
+                callback(validData.slice(0, 3)); 
             } else {
                 radiusIndex++;
                 if (radiusIndex < radiusList.length) {
@@ -77,7 +116,6 @@ function searchKakaoCandidates(keyword, callback) {
     doCandidateSearch();
 }
 
-// 4. 검색된 후보군을 화면에 버튼으로 보여주는 함수
 function showCandidates(candidates) {
     if (candidates.length === 0) {
         updateStatus("목적지를 찾지 못했습니다.", DEFAULT_SUB_TEXT);
@@ -109,7 +147,6 @@ function showCandidates(candidates) {
 
 let recognition = null;
 
-// 5. 음성 인식 시작 (오류 방지 래퍼)
 function startRecognition() {
     if (recognition) {
         try {
@@ -120,30 +157,24 @@ function startRecognition() {
     }
 }
 
-// 6. 음성 인식 시스템 초기화 (외부에서 호출됨)
 export function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-    // 💡 [호환성 대응] 브라우저가 음성 인식을 지원하지 않을 때의 우아한 처리
     if (!SpeechRecognition) {
         console.warn("⚠️ 이 브라우저는 음성 인식(Web Speech API)을 지원하지 않습니다. 마이크 기능을 비활성화합니다.");
-        
-        // 마이크 버튼 숨기기
         if (elements.micBtn) {
             elements.micBtn.style.display = 'none'; 
         }
         
-        // 안내 문구에서 마이크 관련 내용 제거
         const fallbackText = "<span>원하시는 목적지를 검색창에 직접 입력해 주세요.</span>";
-        changeDefaultSubText(fallbackText); // UI 파일의 변수 업데이트
+        changeDefaultSubText(fallbackText); 
         if (elements.subText) {
             elements.subText.innerHTML = fallbackText;
         }
         
-        return; // 인식 기능 초기화 중단
+        return; 
     }
 
-    // --- 지원하는 브라우저인 경우 정상적으로 초기화 진행 ---
     recognition = new SpeechRecognition();
     recognition.maxAlternatives = 3;
     recognition.interimResults = false;
@@ -167,7 +198,6 @@ export function initSpeechRecognition() {
         
         if (corrected) {
             if (originalText === corrected) {
-                // 정확히 일치하는 경우
                 elements.destinationInput.value = corrected;
                 
                 let confirmHtml = `<div class="dynamic-btn-group"><button id="confirm-btn">✅ 맞아요</button><button id="retry-btn">🔄 다시 말할게요</button></div>`;
@@ -184,7 +214,6 @@ export function initSpeechRecognition() {
                 });
 
             } else {
-                // 발음이 비슷하여 교정된 경우 선택지 제공
                 let choiceHtml = `<div class="dynamic-btn-group">
                     <button class="choice-btn" data-name="${corrected}">📍 자주 가는 곳: ${corrected}</button>
                     <button class="choice-btn" data-name="${originalText}">📍 방금 말한 곳: ${originalText}</button>
@@ -207,7 +236,6 @@ export function initSpeechRecognition() {
                 });
             }
         } else {
-            // 알려진 목적지가 아니면 카카오맵 API로 후보군 검색
             updateStatus("검색 중...");
             searchKakaoCandidates(alternatives[0], showCandidates);
         }
