@@ -4,6 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -107,3 +108,6 @@ def get_route(request: RouteRequest):
     except Exception as e:
         print(f"❌ [서버 에러] : {str(e)}")
         return {"status": "error", "message": str(e), "data": None}
+    
+# 💡 프론트엔드 파일들을 8000번 포트 하나로 통합해서 띄워주는 마법의 코드
+app.mount("/", StaticFiles(directory="public", html=True), name="static")

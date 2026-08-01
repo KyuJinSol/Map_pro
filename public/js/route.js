@@ -113,8 +113,8 @@ export function searchRoute() {
 
                 updateStatus("경로 계산 중...");
 
-                const serverUrl = `http://${window.location.hostname}:8000/api/routes`;
-
+                const serverUrl = `/api/routes`;
+                
                 fetch(serverUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
