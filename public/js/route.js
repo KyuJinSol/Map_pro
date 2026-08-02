@@ -71,8 +71,8 @@ export function searchRoute() {
 
                 // 💡 [스마트 정렬] 정확도 -> 랜드마크 -> 지점 배제 -> 피타고라스 실거리
                 validData.sort(function(a, b) {
-                    const aExact = a.place_name === destination || a.place_name.startsWith(destination + ' ');
-                    const bExact = b.place_name === destination || b.place_name.startsWith(destination + ' ');
+                    const aExact = a.place_name === destination || a.place_name.startsWith(destination + ' ') || a.place_name.startsWith(destination + '(');
+                    const bExact = b.place_name === destination || b.place_name.startsWith(destination + ' ') || b.place_name.startsWith(destination + '(');
                     if (aExact && !bExact) return -1;
                     if (!aExact && bExact) return 1;
 
@@ -113,8 +113,8 @@ export function searchRoute() {
 
                 updateStatus("경로 계산 중...");
 
-                const serverUrl = `http://${window.location.hostname}:8000/api/routes`;
-
+                const serverUrl = `/api/routes`;
+                
                 fetch(serverUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -156,16 +156,22 @@ export function searchRoute() {
                             }
                         }
 
+                        // ... [생략] ...
                         if (state.useRealtimeGPS) {
-                            updateStatus("안내를 시작합니다 🚩", `[실시간 안내] 안전한 큰길 기준으로 30초마다 위치 자동 보정 중`);
+                            updateStatus("안내를 시작합니다 🚩", `[실시간 안내] 안전한 큰길 기준으로 30초마다 자동 보정 중`);
                         } else {
-                            updateStatus("안내를 시작합니다 🚩", `[출발] ${state.start_name} 광장 ➔ [도착] ${real_destination_name}`);
+                            // 💡 광장 모드일 때도 30초 갱신 중임을 알리도록 문구 수정
+                            updateStatus("안내를 시작합니다 🚩", `[광장 기준] 30초마다 경로 최신화 중 ➔ [도착] ${real_destination_name}`);
                         }
 
-                        if (state.useRealtimeGPS && !state.locationTimer) {
-                            console.log("⏱️ 30초 주기 실시간 위치 트래킹 엔진 구동 시작");
+                        // ✅ GPS 모드 여부와 상관없이 타이머가 없으면 무조건 돌리도록 조건 수정
+                        if (!state.locationTimer) { 
+                            console.log("⏱️ 30초 주기 경로 자동 갱신 엔진 구동 시작");
                             state.locationTimer = setInterval(function() {
-                                console.log("🔄 [30초 경과] 위치 파악 및 큰길 경로 자동 갱신");
+                                console.log("🔄 [30초 경과] 큰길 경로 자동 갱신");
+
+                                // ❌ 기존 코드: if (state.useRealtimeGPS) updateCurrentGPS(); 
+                                // ✅ 수정된 코드: 모드에 상관없이 30초마다 무조건 내 GPS 위치를 갱신합니다!
                                 updateCurrentGPS(); 
                                 searchRoute();      
                             }, 30000); 

@@ -1,14 +1,5 @@
-# .gitignore 파일 내부
-
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-# Python cache files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# 💡 [보안 유지] 내 비밀번호와 API 키가 들어있는 금고 파일은 업로드 금지!
-.env
+fastapi==0.103.1
+uvicorn==0.23.2
+pymysql==1.1.0
+requests==2.31.0
+pydantic==2.3.0

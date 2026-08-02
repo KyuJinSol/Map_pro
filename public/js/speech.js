@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { elements, updateStatus, DEFAULT_SUB_TEXT, changeDefaultSubText } from './ui.js';
 import { searchRoute } from './route.js';
 
-const response = await fetch('http://localhost:8000/api/destinations');
+const response = await fetch('/api/destinations'); //[cite: 11]
 const result = await response.json();
 let KNOWN_DESTINATIONS = result.status === "success" ? result.data : [];
 
@@ -77,8 +77,8 @@ function searchKakaoCandidates(keyword, callback) {
                 }
 
                 validData.sort(function(a, b) {
-                    const aExact = a.place_name === keyword || a.place_name.startsWith(keyword + ' ');
-                    const bExact = b.place_name === keyword || b.place_name.startsWith(keyword + ' ');
+                    const aExact = a.place_name === keyword || a.place_name.startsWith(keyword + ' ') || a.place_name.startsWith(keyword + '(');
+                    const bExact = b.place_name === keyword || b.place_name.startsWith(keyword + ' ') || b.place_name.startsWith(keyword + '(');
                     if (aExact && !bExact) return -1;
                     if (!aExact && bExact) return 1;
 
