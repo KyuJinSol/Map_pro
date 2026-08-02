@@ -1,6 +1,9 @@
 import { state } from './state.js';
 import { elements, updateStatus } from './ui.js';
 
+// 💡 내 실제 위치만 독립적으로 띄워줄 전용 마커 변수
+let myLocationMarker = null; 
+
 export function updateCurrentGPS() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -10,9 +13,24 @@ export function updateCurrentGPS() {
             };
             console.log("📍 [GPS 싱크] 현재 실시간 좌표 업데이트 완료");
             
+            const currentLatLng = new kakao.maps.LatLng(state.gpsCoords.lat, state.gpsCoords.lng);
+
+            // ✅ 1. 모드(광장/실시간)에 상관없이 내 진짜 위치 마커는 무조건 지도에 찍고 움직입니다.
+            if (state.map) {
+                if (!myLocationMarker) {
+                    myLocationMarker = new kakao.maps.Marker({
+                        position: currentLatLng,
+                        map: state.map,
+                        title: "내 실제 위치"
+                    });
+                } else {
+                    myLocationMarker.setPosition(currentLatLng);
+                }
+            }
+            
+            // ✅ 2. '실시간 내 위치 모드'가 켜져 있을 때만, 경로의 출발점도 내 위치로 끌고 옵니다.
             if (state.useRealtimeGPS && state.startMarker && state.map) {
-                const newStartLatLng = new kakao.maps.LatLng(state.gpsCoords.lat, state.gpsCoords.lng);
-                state.startMarker.setPosition(newStartLatLng);
+                state.startMarker.setPosition(currentLatLng);
             }
         }, function(error) { 
             console.error(error); 
@@ -43,11 +61,5 @@ export function toggleGPS() {
             btn.innerText = "📍 현재 내 위치를 출발지로 설정";
         }
         updateStatus("어디로 갈까요?", "광장(GTX연신849) 기준으로 안내합니다.");
-        
-        if (state.locationTimer) {
-            clearInterval(state.locationTimer);
-            state.locationTimer = null;
-            console.log("⏱️ 30초 위치 확인 타이머가 종료되었습니다.");
-        }
     }
 }
