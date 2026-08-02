@@ -19,12 +19,21 @@ app.add_middleware(
 TMAP_API_KEY = "xtombuydrL8RE8Fs2iavf4VjHKfDJPYn4sludT1E"
 
 def get_db_connection():
-    # 💡 팀원 컴퓨터 환경변수에 'DB_PASSWORD'가 등록되어 있으면 그걸 쓰고, 없으면 내 기본 비밀번호 사용!
-    db_password = os.getenv("DB_PASSWORD", "chan030531^^") 
+    # 💡 Render 대시보드에서 입력할 환경 변수들을 불러옵니다. (없으면 기존 로컬 설정 사용)
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_user = os.getenv("DB_USER", "root")
+    db_password = os.getenv("DB_PASSWORD", "chan030531^^")
+    db_name = os.getenv("DB_NAME", "map_db")
+    db_port = int(os.getenv("DB_PORT", 3306))
     
     return pymysql.connect(
-        host='localhost', user='root', password=db_password,  
-        database='map_db', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor  
+        host=db_host, 
+        user=db_user, 
+        password=db_password,  
+        database=db_name, 
+        port=db_port,
+        charset='utf8mb4', 
+        cursorclass=pymysql.cursors.DictCursor  
     )
 
 class RouteRequest(BaseModel):
