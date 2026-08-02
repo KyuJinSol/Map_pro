@@ -71,8 +71,8 @@ export function searchRoute() {
 
                 // 💡 [스마트 정렬] 정확도 -> 랜드마크 -> 지점 배제 -> 피타고라스 실거리
                 validData.sort(function(a, b) {
-                    const aExact = a.place_name === destination || a.place_name.startsWith(destination + ' ');
-                    const bExact = b.place_name === destination || b.place_name.startsWith(destination + ' ');
+                    const aExact = a.place_name === destination || a.place_name.startsWith(destination + ' ') || a.place_name.startsWith(destination + '(');
+                    const bExact = b.place_name === destination || b.place_name.startsWith(destination + ' ') || b.place_name.startsWith(destination + '(');
                     if (aExact && !bExact) return -1;
                     if (!aExact && bExact) return 1;
 
