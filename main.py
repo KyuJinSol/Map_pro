@@ -47,7 +47,7 @@ def get_destinations():
     try:
         connection = get_db_connection()
         with connection.cursor() as cursor:
-            sql = "SELECT name_ko FROM destinations"
+            sql = "SELECT name_ko FROM map_destinations"
             cursor.execute(sql)
             db_results = cursor.fetchall()
         connection.close()
@@ -80,7 +80,7 @@ def get_route(request: RouteRequest):
         else:
             connection = get_db_connection()
             with connection.cursor() as cursor:
-                sql = "SELECT latitude, longitude, name_ko FROM QR_Locations WHERE name_ko LIKE %s"
+                sql = "SELECT latitude, longitude, name_ko FROM map_qr_locations WHERE name_ko LIKE %s"
                 cursor.execute(sql, (f"%{request.start_name}%",))
                 db_result = cursor.fetchone()
             connection.close()
