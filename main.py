@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 
+load_dotenv()
+
 app = FastAPI()
 
 app.add_middleware(
@@ -16,13 +18,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-TMAP_API_KEY = "xtombuydrL8RE8Fs2iavf4VjHKfDJPYn4sludT1E"
+TMAP_API_KEY = os.getenv("TMAP__API_KEY")
 
 def get_db_connection():
     # 💡 Render 대시보드에서 입력할 환경 변수들을 불러옵니다. (없으면 기존 로컬 설정 사용)
     db_host = os.getenv("DB_HOST", "localhost")
     db_user = os.getenv("DB_USER", "root")
-    db_password = os.getenv("DB_PASSWORD", "chan030531^^")
+    db_password = os.getenv("DB_PASSWORD")
     db_name = os.getenv("DB_NAME", "map_db")
     db_port = int(os.getenv("DB_PORT", 3306))
     
