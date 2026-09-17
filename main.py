@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-TMAP_API_KEY = os.getenv("TMAP__API_KEY")
+TMAP_API_KEY = os.getenv("TMAP_API_KEY")
 
 def get_db_connection():
     # 💡 Render 대시보드에서 입력할 환경 변수들을 불러옵니다. (없으면 기존 로컬 설정 사용)
